@@ -16,5 +16,5 @@ Simply run [main.m](https://github.com/mahyarfazlyab/ReachSDP/blob/master/double
 
 ## Acknowledgments
 
-* Check out "[Safety Verification and Robustness Analysis of Neural Networks via Quadratic Constraints and Semidefinite Programming](https://arxiv.org/pdf/1903.01287.pdf)" for details on abstracting DNNs with quadratic constraints
+* Check out "[Safety Verification and Robustness Analysis of Neural Networks via Quadratic Constraints and Semidefinite Programming](https://arxiv.org/pdf/1903.01287.pdf)" for details on abstracting DNNs with Quadratic Constraints
 * Check out "[Probabilistic Verification and Reachability Analysis of Neural Networks via Semidefinite Programming](https://arxiv.org/pdf/1910.04249.pdf)" for details on using ellipsoidal reachable sets in Reach-SDP
