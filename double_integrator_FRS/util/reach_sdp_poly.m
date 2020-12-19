@@ -109,6 +109,8 @@ cs = zeros(dim_x,1);
 Eout = [As zeros(dim_x,num_neurons-dim_last_hidden) Bs];
 Eout = [Eout cs; zeros(1,size(Eout,2)) 1];
 
+S = [zeros(dim_x) zeros(dim_x,dim_u) Asys'*cc;zeros(dim_u,dim_x) zeros(dim_u) Bsys'*cc;cc'*Asys cc'*Bsys -2*b];
+
 Mout = Eout'*S*Eout;
 
 

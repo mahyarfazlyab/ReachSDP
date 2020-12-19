@@ -1,7 +1,7 @@
 %% Reach-SDP with Forward Reachability
 clear all; clc
 close all;
-addpath('./util', './networks')
+addpath('./util');
 
 
 %% System Parameters
@@ -18,9 +18,40 @@ m = size(B,2);
 sys.A = A;
 sys.B = B;
 
-% get network parameters
-net = convert_nnmpc_to_net(weights, biases, 'relu', []);
+dim_x = size(sys.A,1);
+dim_u = size(sys.B,2);
 
+%% get network parameters
+
+dims(1) = size(weights{1},2);
+
+num_layers = numel(weights)-1;
+
+for i=1:num_layers
+    dims(i+1) = size(weights{i},1);
+end
+
+dims(num_layers+2) = size(weights{end},1);
+
+net = nnsequential(dims,'relu');
+net.weights = weights;
+net.biases = biases;
+
+%% add projection layer
+net_p = nnsequential([dims dims(end) dims(end)],'relu');
+
+weights_p = weights;
+weights_p{end+1} = -eye(dim_u);
+weights_p{end+1} = -eye(dim_u);
+
+biases_p = biases;
+biases_p{end} = biases{end}-sys.ulb;
+biases_p{end+1} =  sys.uub-sys.ulb;
+biases_p{end+1} =  sys.uub;
+
+
+net_p.weights = weights_p;
+net_p.biases = biases_p;
 
 %% Setup
 % initial set
@@ -31,10 +62,6 @@ X0_vec = X0;
 
 dx = 0.02; % shrink the tube for better visualization
 X0_poly_s = Polyhedron([1 0; -1 0; 0 1; 0 -1], X0_b-dx);
-
-% SDP parameters
-repeated = false;
-verbose = false;
 
 % reachability horizon
 N = 6;
@@ -56,8 +83,10 @@ for k = 1:N
     Xg_k = []; % one-step FRS at time k
     Ug_k = []; % one-step control set at time k
     for x = Xg_cell{end}'
-        u = fwd_prop(net,x);
-        x_next = A*x + B*proj(u(1),sys.ulb,sys.uub);
+        %u = fwd_prop(net,x);
+        %x_next = A*x + B*proj(u(1),sys.ulb,sys.uub);
+        u = net_p.eval(x);
+        x_next = A*x + B*u;
         Xg_k = [Xg_k; x_next'];
         Ug_k = [Ug_k; u(1)];
     end
@@ -70,6 +99,11 @@ end
 poly_cell = cell(1,N+1);
 poly_cell{1,1}  = X0_vec;
 
+options.verbose = 0;
+options.solver = 'mosek';
+options.repeated = 0;
+
+
 for i = 1:length(X0_vec)
     
     % polytopic initial set
@@ -77,13 +111,11 @@ for i = 1:length(X0_vec)
     input_set.set  = X0_vec(i);
     poly_seq_vec   = X0_vec(i);
     
+    
     % forward reachability
     for k = 1:N
-        b_out = [];
-        for c = A_out'
-            sol   = reach_sdp_poly(net, input_set, c, repeated, sys, verbose);
-            b_out = [b_out; sol.bound];
-        end
+        
+        [b_out,~,~] =  reach_sdp(net_p,sys.A,sys.B,input_set.set.H,A_out',options);
         
         % shift horizon
         input_set.set = Polyhedron(A_out, b_out);
@@ -126,15 +158,9 @@ for k = 2:N+1
     plot(FRS_bd(:,1),FRS_bd(:,2),'b-','LineWidth',1.5)
 end
 
-grid off
-axis equal
-xlim([-1,6])
-ylim([-3,3])
-xlabel('$x_1$','Interpreter','latex')
-ylabel('$x_2$','Interpreter','latex')
-
-
-%% Auxiliary Functions
-function out = proj(u, u_min, u_max)
-    out = min(max(u,u_min),u_max);
-end
+grid on;
+axis tight;
+%xlim([-1,6]);
+%ylim([-3,3]);
+xlabel('$x_1$','Interpreter','latex');
+ylabel('$x_2$','Interpreter','latex');
