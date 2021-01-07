@@ -1,16 +1,16 @@
 function [bound,time,status] =  reach_sdp(net,Asys,Bsys,input_polytope,c,options)
 
 % Author: Haimin Hu & Mahyar Fazlyab
-% email: fazlyabmahyar@gmail.com
+% email: haiminh@princeton.edu mahyarfazlyab@jhu.edu
 % Last revision: December 2020
 
-version = '2020.12';
+version = '20.12';
 
 %%------- FUNCTION DECRIPTION -----------
 
 % Inputs:
 %   net            - nnsequential object representing the neural network
-%   input_polytope - input set of initial states
+%   input_polytope - input_polytope = {x | H*[x;-1] <= 0} cap {x | lb<=x<=ub}
 %   c              - matrix of normal vectors of the facets of the
 %                    output set: c(:,i) is the i-th normal vector
 %   Asys           - state transition matrix of the LTI system
@@ -90,12 +90,6 @@ for i=1:dim_x
     x_max(i,1) = value(x(i));
 end
 
-% computation of preactivation bounds based on the following paper
-% Huan Zhang, Tsui-Wei Weng, Pin-Yu Chen, Cho-Jui Hsieh, and Luca Daniel. 
-% Efficient neural net- work robustness certification with general activation functions. 
-% In Advances in neural information processing systems, pages 4939–4948, 2018.
-
-%[Y_min,Y_max] = preactivation_bounds_ReLU(weights,biases,x_min,x_max);
 
 % Interval arithmetic to find the activation bounds
 [Y_min,Y_max] = net.interval_arithmetic(x_min,x_max);
@@ -118,7 +112,7 @@ El = [zeros(dim_last_hidden,num_neurons+dim_in-dim_last_hidden) eye(dim_last_hid
 
 
 %% Construct Min
-tau = sdpvar(dim_px,dim_px);
+tau = sdpvar(dim_px,dim_px,'symmetric');
 constraints = [tau(:)>=0, diag(tau)==0];
 
 CM_in = ([eye(dim_in) zeros(dim_in,num_neurons+1);zeros(1,dim_in+num_neurons) 1]);
@@ -179,17 +173,7 @@ Q23 = nu+eta+D*(X_min+X_max);
 Q33 = -2*X_min'*D*X_max;
 
 
-
-
-
-Q23 = eta+nu+D*X_min+D.'*X_max;
-Q31 = Q13.';
-Q32 = Q23.';
-Q33 = 0-X_min'*D.'*X_max-X_max'*D*X_min;
-
-
 Q = [Q11 Q12 Q13; Q12.' Q22 Q23;Q13.' Q23.' Q33];
-
 
 CM_mid = [AA bb;BB zeros(size(BB,1),1);zeros(1,size(BB,2)) 1];
 
@@ -224,7 +208,7 @@ for i=1:size(c,2)
     
     message = ['method: ReachSDP ', version,'| solver: ', solver, '| bound: ', num2str(bound(i,1),'%.3f'), '| solvetime: ', num2str(time(i,1),'%.3f'), '| status: ', status{i}];
     
-    %disp(message);
+    disp(message);
     
 end
 
