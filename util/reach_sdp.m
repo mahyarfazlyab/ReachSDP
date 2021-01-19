@@ -10,7 +10,7 @@ version = '20.12';
 
 % Inputs:
 %   net            - nnsequential object representing the neural network
-%   input_polytope - input_polytope = {x | H*[x;-1] <= 0} cap {x | lb<=x<=ub}
+%   input_polytope - input_polytope = {x | H*[x;-1] <= 0}
 %   c              - matrix of normal vectors of the facets of the
 %                    output set: c(:,i) is the i-th normal vector
 %   Asys           - state transition matrix of the LTI system
